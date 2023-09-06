@@ -1,4 +1,42 @@
 #!/usr/bin/make -f
+export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+export DEB_LDFLAGS_MAINT_APPEND =
+
+CFLAGS+=$(CPPFLAGS)
 
 %:
 	dh $@
+
+override_dh_auto_clean:
+	dh_auto_clean
+	-rm -r CMakeFiles NO_PACK Testing bin po/CMakeFiles $(CURDIR)/po/*.gmo $(CURDIR)/test-bin $(CURDIR)/po/CTestTestfile.cmake
+	-cp $(CURDIR)/debian/bak/po/*.po $(CURDIR)/po/
+	-cp $(CURDIR)/debian/bak/po/zanata.xml $(CURDIR)/po/
+	-cp $(CURDIR)/debian/bak/ChangeLog $(CURDIR)/
+	-cp $(CURDIR)/debian/bak/data/ibus-setup-chewing.desktop $(CURDIR)/data/
+
+
+override_dh_auto_build:
+	dh_auto_build
+	make translations
+
+# Kept manual invocation due to non-standard cmake target "translations".
+override_dh_auto_configure:
+	mkdir -p $(CURDIR)/debian/bak/po
+	cp $(CURDIR)/po/*.po $(CURDIR)/debian/bak/po
+	cp $(CURDIR)/po/zanata.xml $(CURDIR)/debian/bak/po
+	cp $(CURDIR)/ChangeLog $(CURDIR)/debian/bak
+	cmake -DCMAKE_INSTALL_PREFIX="/usr" \
+		-DCMAKE_VERBOSE_MAKEFILE=ON \
+		-DCMAKE_SKIP_RPATH=ON \
+		-DSYSCONF_INSTALL_DIR=/usr/share \
+		-DCMAKE_MODULE_PATH=/usr/share/cmake/Modules \
+		$(NULL)
+
+override_dh_auto_install:
+	cp $(CURDIR)/debian/bak/ChangeLog $(CURDIR)/
+	dh_auto_install
+	rm -f $(CURDIR)/debian/ibus-chewing/usr/share/doc/ibus-chewing/COPYING
+	rm -f $(CURDIR)/debian/ibus-chewing/usr/share/doc/ibus-chewing/ChangeLog
+
+override_dh_auto_test:
